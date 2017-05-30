@@ -1,0 +1,130 @@
+//this i a template for a cumulative job that will provision all roles
+pipeline {
+   agent any
+    parameters {
+        string(defaultValue: "prod", description: 'What environment?', name: 'env')
+        // 
+        string(defaultValue: "deheremap6574.emea.adsint.biz,deheremap6565.emea.adsint.biz,deheremap6568.emea.adsint.biz", description: 'which server will run the job?', name: 'server_names')
+        // 
+        string(defaultValue: "r1jboss", description: 'which user will run the job?', name: 'sys_exc_user')
+        // choices are newline separated
+        choice(choices: 'Liquibase Update CMDB\nLiquibase Update CMDB_INB\nLiquibase Update CMDB_OUB\nElastic search cluster setup\nElastic search publish templates\nFoundation service provision\nLifeRay Portal provisiion\nElastic search index maintance', description: 'What stage to fail?', name: 'failStage')
+
+    }
+//parameters { string(name: 'env2', defaultValue: 'dev', description: '')}//,
+       //string(name: 'elastic_server_names', defaultValue: 'deheremap6574.emea.adsint.biz,deheremap6565.emea.adsint.biz,deheremap6568.emea.adsint.biz', description: '') ]}
+
+
+   stages{
+     
+       stage('Liquibase Update CMDB'){
+           agent { label 'jenkins'  }
+           steps{
+             timeout(time: 13, unit: 'SECONDS') {
+             echo 'Liquibase Update CMDB'
+             sh 'hostname'
+             //sh 'sleep 20'
+             sh 'exit 0'
+
+             }
+           }
+           post { 
+             failure { 
+                echo 'shit happens!'
+             }
+           }        
+       }
+       
+
+       stage('Liquibase Update CMDB_INB'){
+           agent { label 'jenkins'  }
+ 
+           steps{
+           echo 'Liquibase Update CMDB_INB'
+           sh 'hostname'
+           }
+       }
+       stage('Liquibase Update CMDB_OUB'){
+           agent { label 'jenkins'  }
+           steps{
+           echo 'Liquibase Update CMDB_OUB'
+           sh 'hostname'
+           }
+       }       
+       stage('Elastic search cluster setup'){
+           agent { label 'jenkins'  }
+           steps{
+           echo 'Elastic search provision'
+           //git branch: '*/master', changelog: false, credentialsId: 'svc_sysexc_cd', poll: false, url: 'ssh://bitbucket.tools.adidas-group.com/gpc/systemexcellence.git'
+           /*
+           sh 'IFS="," read -r -a servers <<< "${server_names}"
+           ls -l
+           export index=1
+
+           for node in "${servers[@]}"
+             do 
+            	#copy bootstrap in the servers
+               scp -o UserKnownHostsFile=/dev/null \
+               -o StrictHostKeyChecking=no \
+               shell/bootstrap.sh ${sys_exc_user}@${node}:/tmp/bootstrap.sh
+               #add execution permission
+               ssh -o UserKnownHostsFile=/dev/null \
+	           -o StrictHostKeyChecking=no \
+               ${sys_exc_user}@${node} "sudo chmod +x /tmp/bootstrap.sh"
+    
+               #install 
+	           echo "Installing Liferay portal in ${node}"
+	           ssh -o UserKnownHostsFile=/dev/null \
+	           -o StrictHostKeyChecking=no \
+            ${sys_exc_user}@${node} "sudo /tmp/bootstrap.sh -r ${role} -e ${env} -n ${node} -d || if [ "$?" == 2 ]; then continue; else if [ "$?" == 0 ]; then continue; else exit 1; fi; fi;"
+    
+            num=1
+            export index=$((index + num))
+        done'
+           */
+           script{
+               
+            
+                    def servers = ${params.servers}.split(',')
+                    for (int i = 0; i < servers.size(); ++i) {
+                        echo "Testing the ${servers[i]} server"
+                    }
+
+           }
+           }
+           
+       }
+       stage('Elastic search publish templates'){
+           agent { label 'jenkins'  }
+           steps{
+           echo 'Elastic search publish templates'
+           sh 'hostname'           
+           }
+       }
+       stage('Foundation service provision'){
+           agent { label 'jenkins'  }           
+           steps{
+           echo 'Foundation service provision'
+           sh 'hostname'           
+           }
+       }
+       stage ('LifeRay Portal provisiion'){
+           agent { label 'jenkins' }    
+           steps{
+           echo 'LifeRay Portal provisiion'
+           sh 'hostname'           
+           }
+       }
+       stage('Elastic search index maintance'){
+           agent { label 'jenkins'}                      
+           steps{
+           echo 'Elastic search index maintance'
+           sh 'hostname'           
+           }
+       }
+    
+   }
+}
+
+
+
