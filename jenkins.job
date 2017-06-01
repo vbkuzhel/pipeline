@@ -29,7 +29,8 @@ pipeline {
        stage('Liquibase Update CMDB'){
            agent { label 'jenkins'  }
            steps{
-                script{          
+                script{    
+                    def role="elasticsearch_install"       
                     echo 'Liquibase Update CMDB'
                     sshagent(['svc_sysexc_cd']) {
                           echo 'Attention!!!'
@@ -97,12 +98,15 @@ pipeline {
        }//stage
        stage('Elastic search cluster setup'){
            agent { label 'jenkins'  }
+           environment { 
+                    role = 'elasticsearch_install'
+            }           
            steps{
             script {
-             def role="elasticsearch_install" 
+             //def role="elasticsearch_install" 
              sshagent(['svc_sysexc_cd']) {              
                echo '......'
-               echo '$role' 
+               //echo "${role}" 
                echo 'Elastic search provision'
                //git branch: '*/master', changelog: false, credentialsId: 'svc_sysexc_cd', poll: false, url: 'ssh://bitbucket.tools.adidas-group.com/gpc/systemexcellence.git'
                sh '''
@@ -123,7 +127,7 @@ pipeline {
 	               echo "Installing Liferay portal in ${node}"
 	               echo ssh -o UserKnownHostsFile=/dev/null \
 	                        -o StrictHostKeyChecking=no \
-                            ${sys_exc_user}@${node} "sudo /tmp/bootstrap.sh -r elasticsearch_install -a ${ver} -e ${env} -n ${node} -d || if [ "$?" == 2 ]; then continue; else if [ "$?" == 0 ]; then continue; else exit 1; fi; fi;" 
+                            ${sys_exc_user}@${node} "sudo /tmp/bootstrap.sh -r ${role} -a ${ver} -e ${env} -n ${node} -d || if [ "$?" == 2 ]; then continue; else if [ "$?" == 0 ]; then continue; else exit 1; fi; fi;" 
                    num=1
                    export index=$((index + num))
                  done
@@ -205,15 +209,20 @@ pipeline {
            agent { label 'jenkins'}                      
            steps{
                script{
-                   sshagent(['svc_sysexc_cd']) {
-                   echo 'Elastic search index maintance'
-                   echo 'Attention!!!'
-                   sh '''
-                      /usr/bin/ssh -o UserKnownHostsFile=/dev/null \
-                                   -o StrictHostKeyChecking=no \
-                                   ${sys_exc_user}@localhost "whoami"
+                   echo "flag: ${params.SkipElasticIndex}"
+                   if (params.SkipElasticIndex=="No"){
+                      sshagent(['svc_sysexc_cd']) {
+                      echo 'Elastic search index maintance'
+                      echo 'Attention!!!'
+                      sh '''
+                         /usr/bin/ssh -o UserKnownHostsFile=/dev/null \
+                                      -o StrictHostKeyChecking=no \
+                                      ${sys_exc_user}@localhost "whoami"
                       '''              
                    }//sshagent
+               } else {
+                   echo 'Omiting the index maintance phase'
+               }//if
                }//script
            }//steps
            post { 
