@@ -1,14 +1,25 @@
 //this i a template for a cumulative job that will provision all roles
 pipeline {
    agent any
+   
     parameters {
         string(defaultValue: "prod", description: 'What environment?', name: 'env')
         // 
-        string(defaultValue: "deheremap6574.emea.adsint.biz,deheremap6565.emea.adsint.biz,deheremap6568.emea.adsint.biz", description: 'which server will run the job?', name: 'server_names')
+        string(defaultValue: "localhost,localhost", description: 'which server will run the elastic search role?', name: 'elastic_server_names')
+        // 
+        string(defaultValue: "localhost,localhost", description: 'which server will run the foundation services role?', name: 'foundation_server_names')
+        // 
+        string(defaultValue: "localhost,localhost", description: 'which server will run the liquibase role?', name: 'liquibase_server_names')
         // 
         string(defaultValue: "r1jboss", description: 'which user will run the job?', name: 'sys_exc_user')
+        // 
+        string(defaultValue: "201705", description: 'which version to install?', name: 'ver')
         // choices are newline separated
         choice(choices: 'Liquibase Update CMDB\nLiquibase Update CMDB_INB\nLiquibase Update CMDB_OUB\nElastic search cluster setup\nElastic search publish templates\nFoundation service provision\nLifeRay Portal provisiion\nElastic search index maintance', description: 'What stage to fail?', name: 'failStage')
+        // choices are newline separated
+        choice(choices: 'No\nYes', description: 'should the elastic search indexing stage be ommited?', name: 'SkipElasticIndex')
+        // 
+        string(defaultValue: "jenkins||jenkins", description: 'which node label to use for the elastic search stages?', name: 'elasticlabel')
 
     }
 //parameters { string(name: 'env2', defaultValue: 'dev', description: '')}//,
@@ -20,17 +31,17 @@ pipeline {
        stage('Liquibase Update CMDB'){
            agent { label 'jenkins'  }
            steps{
-             timeout(time: 13, unit: 'SECONDS') {
+             
              echo 'Liquibase Update CMDB'
              sh 'hostname'
              //sh 'sleep 20'
              sh 'exit 0'
 
-             }
+             
            }
            post { 
              failure { 
-                echo 'shit happens!'
+                echo 'it happens!'
              }
            }        
        }
@@ -40,8 +51,19 @@ pipeline {
            agent { label 'jenkins'  }
  
            steps{
-           echo 'Liquibase Update CMDB_INB'
-           sh 'hostname'
+             
+                    script{
+                        echo 'Liquibase Update CMDB_INB'
+                        sshagent(['svc_sysexc_cd']) {
+                          echo 'Attention!!!'
+                          sh '''
+                          /usr/bin/ssh -o UserKnownHostsFile=/dev/null \
+	                                   -o StrictHostKeyChecking=no \
+                                        ${sys_exc_user}@localhost "whoami"
+                            '''
+                        }
+
+               }
            }
        }
        stage('Liquibase Update CMDB_OUB'){
@@ -53,44 +75,41 @@ pipeline {
        }       
        stage('Elastic search cluster setup'){
            agent { label 'jenkins'  }
+  
            steps{
+           script {def role="elasticsearch_install" }
+           
+           echo 'role is $role' 
            echo 'Elastic search provision'
            //git branch: '*/master', changelog: false, credentialsId: 'svc_sysexc_cd', poll: false, url: 'ssh://bitbucket.tools.adidas-group.com/gpc/systemexcellence.git'
-           /*
-           sh 'IFS="," read -r -a servers <<< "${server_names}"
+           
+           sh '''
+           IFS="," read -r -a servers <<< "${elastic_server_names}"
            ls -l
            export index=1
-
+           
            for node in "${servers[@]}"
              do 
             	#copy bootstrap in the servers
-               scp -o UserKnownHostsFile=/dev/null \
+               echo scp -o UserKnownHostsFile=/dev/null \
                -o StrictHostKeyChecking=no \
                shell/bootstrap.sh ${sys_exc_user}@${node}:/tmp/bootstrap.sh
                #add execution permission
-               ssh -o UserKnownHostsFile=/dev/null \
+               echo ssh -o UserKnownHostsFile=/dev/null \
 	           -o StrictHostKeyChecking=no \
                ${sys_exc_user}@${node} "sudo chmod +x /tmp/bootstrap.sh"
     
                #install 
 	           echo "Installing Liferay portal in ${node}"
-	           ssh -o UserKnownHostsFile=/dev/null \
+	           echo ssh -o UserKnownHostsFile=/dev/null \
 	           -o StrictHostKeyChecking=no \
-            ${sys_exc_user}@${node} "sudo /tmp/bootstrap.sh -r ${role} -e ${env} -n ${node} -d || if [ "$?" == 2 ]; then continue; else if [ "$?" == 0 ]; then continue; else exit 1; fi; fi;"
+            ${sys_exc_user}@${node} "sudo /tmp/bootstrap.sh -r elasticsearch_install -a ${ver} -e ${env} -n ${node} -d || if [ "$?" == 2 ]; then continue; else if [ "$?" == 0 ]; then continue; else exit 1; fi; fi;"
     
             num=1
             export index=$((index + num))
-        done'
-           */
-           script{
-               
-            
-                    def servers = ${params.servers}.split(',')
-                    for (int i = 0; i < servers.size(); ++i) {
-                        echo "Testing the ${servers[i]} server"
-                    }
-
-           }
+        done'''
+        
+ 
            }
            
        }
@@ -125,6 +144,5 @@ pipeline {
     
    }
 }
-
 
 
