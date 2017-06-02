@@ -7,15 +7,15 @@ pipeline {
         isUnix()
       }
     }
-    stage('') {
+    stage('perform') {
       steps {
         parallel(
-          "paralel stage 2": {
+          "paralel step 1": {
             echo 'paaralel job 1'
             
           },
-          "paralel stage 1": {
-            echo 'paaralel job 1'
+          "paralel step 2": {
+            echo 'paaralel job 2'
             
           }
         )
