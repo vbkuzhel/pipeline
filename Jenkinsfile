@@ -17,6 +17,10 @@ pipeline {
           "paralel step 2": {
             echo 'paaralel job 2'
             
+          },
+          "stage stage": {
+            echo 'ssss'
+            
           }
         )
       }
